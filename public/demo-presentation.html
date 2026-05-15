@@ -1,0 +1,593 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hitachi Rail Lucky Draw — Demo Presentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #E60000; --red-dark: #a50000; --red-glow: rgba(230,0,0,0.35);
+      --ink: #120c0c; --ink-mid: #2a1a1a; --cream: #fdf6ec;
+      --gold: #f5c842; --gold-light: #fff1b0; --silver: #c8c8c8;
+      --muted: #8a7a6e; --white: #fefaf6; --green: #5dff8a; --radius: 18px;
+    }
+    html, body { height: 100%; overflow: hidden; background: var(--ink); font-family: "Outfit", sans-serif; color: var(--white); -webkit-font-smoothing: antialiased; }
+    #deck { position: relative; width: 100vw; height: 100vh; }
+    .slide { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 4rem clamp(2rem,7vw,7rem); opacity: 0; transform: translateX(60px); pointer-events: none; transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1); will-change: transform, opacity; overflow: hidden; }
+    .slide.active { opacity: 1; transform: translateX(0); pointer-events: all; }
+    .slide.exit { opacity: 0; transform: translateX(-60px); }
+    .bg-ink { background: var(--ink); }
+    .bg-dark { background: #1a0a0a; }
+    .bg-stripe { background: var(--ink); background-image: repeating-linear-gradient(135deg,transparent,transparent 36px,rgba(255,255,255,0.018) 36px,rgba(255,255,255,0.018) 37px); }
+    .noise::after { content: ""; position: absolute; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"); pointer-events: none; opacity: 0.6; z-index: 1; }
+    .rail-stripe { position: absolute; bottom: 0; left: 0; right: 0; height: 7px; background: var(--red); z-index: 10; }
+    .rail-stripe-gold { position: absolute; bottom: 0; left: 0; right: 0; height: 7px; background: linear-gradient(90deg,var(--red),var(--gold),var(--red)); z-index: 10; }
+    #progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--red); transition: width 0.45s cubic-bezier(0.22,1,0.36,1); z-index: 200; }
+    .nav-btn { position: fixed; top: 50%; transform: translateY(-50%); z-index: 150; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: var(--white); width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(6px); transition: background 0.2s; }
+    .nav-btn:hover { background: rgba(230,0,0,0.4); }
+    #prev { left: 1.5rem; } #next { right: 1.5rem; }
+    .nav-btn svg { width: 20px; height: 20px; }
+    #counter { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 150; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: background 0.3s, transform 0.3s; cursor: pointer; }
+    .dot.active { background: var(--red); transform: scale(1.35); }
+    #keyboard-hint { position: fixed; bottom: 3.5rem; right: 1.5rem; font-size: 0.65rem; color: rgba(255,255,255,0.2); letter-spacing: 0.1em; z-index: 150; }
+    .slide-num { position: absolute; top: 1.5rem; right: 1.5rem; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em; color: rgba(255,255,255,0.2); text-transform: uppercase; z-index: 5; }
+    .eyebrow { font-size: clamp(0.62rem,0.9vw,0.78rem); font-weight: 700; letter-spacing: 0.35em; text-transform: uppercase; color: var(--red); margin-bottom: 0.9rem; }
+    .eyebrow.gold { color: var(--gold); } .eyebrow.muted { color: rgba(255,255,255,0.4); }
+    .display { font-family: "Playfair Display", serif; font-size: clamp(2.6rem,6vw,5.8rem); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; }
+    .display em { font-style: italic; color: var(--red); }
+    .display .gold-em { font-style: italic; color: var(--gold); }
+    .headline { font-family: "Playfair Display", serif; font-size: clamp(1.7rem,4vw,3.6rem); font-weight: 700; line-height: 1.12; letter-spacing: -0.015em; }
+    .body-lg { font-size: clamp(0.95rem,1.8vw,1.25rem); font-weight: 400; line-height: 1.72; color: rgba(255,255,255,0.65); max-width: 58ch; }
+    .slide-content { position: relative; z-index: 2; width: 100%; max-width: 1200px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem,4vw,4.5rem); align-items: center; }
+    .two-col-60 { display: grid; grid-template-columns: 1fr 1.15fr; gap: clamp(2rem,4vw,4.5rem); align-items: center; }
+    .two-col-40 { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(2rem,4vw,4.5rem); align-items: center; }
+    @media (max-width:768px) { .two-col,.two-col-60,.two-col-40 { grid-template-columns: 1fr; gap: 2rem; } }
+    .four-col { display: grid; grid-template-columns: repeat(4,1fr); gap: 1.4rem; }
+    @media (max-width:900px) { .four-col { grid-template-columns: repeat(2,1fr); } }
+    .screenshot-frame { border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 28px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05); background: #1a0a0a; width: 100%; }
+    .screenshot-frame .sf-bar { height: 30px; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; padding: 0 1rem; gap: 6px; flex-shrink: 0; }
+    .sf-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .screenshot-frame img { width: 100%; display: block; object-fit: cover; object-position: top center; }
+    .screenshot-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; width: 100%; }
+    .check-list { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1.5rem; }
+    .check-item { display: flex; align-items: flex-start; gap: 0.75rem; font-size: clamp(0.82rem,1.4vw,0.95rem); color: rgba(255,255,255,0.7); line-height: 1.5; }
+    .check-item .ci-icon { color: var(--green); font-size: 1.05rem; flex-shrink: 0; margin-top: 0.05em; }
+    .check-item.gold .ci-icon { color: var(--gold); }
+    .pill { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.3em 0.9em; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .pill-red { background: rgba(230,0,0,0.18); color: #ff7070; border: 1px solid rgba(230,0,0,0.3); }
+    .pill-green { background: rgba(93,255,138,0.1); color: var(--green); border: 1px solid rgba(93,255,138,0.22); }
+    .pill-gold { background: rgba(245,200,66,0.12); color: var(--gold); border: 1px solid rgba(245,200,66,0.28); }
+    .pill-white { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.12); }
+    .stat-row { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .stat-box { flex: 1; min-width: 120px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 1.2rem 1.4rem; text-align: center; }
+    .stat-box .num { font-family: "Playfair Display", serif; font-size: clamp(1.9rem,3.5vw,3rem); font-weight: 900; color: var(--red); line-height: 1; }
+    .stat-box .num.gold { color: var(--gold); }
+    .stat-box .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,0.4); margin-top: 0.3rem; }
+    .value-card { background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); padding: 1.8rem; position: relative; overflow: hidden; }
+    .value-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .value-card.vc-red::before { background: var(--red); } .value-card.vc-gold::before { background: var(--gold); }
+    .value-card.vc-green::before { background: var(--green); } .value-card.vc-white::before { background: rgba(255,255,255,0.3); }
+    .value-card .vc-icon { font-size: 2.2rem; margin-bottom: 0.9rem; display: block; }
+    .value-card h3 { font-family: "Playfair Display", serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .value-card p { font-size: 0.87rem; line-height: 1.62; color: rgba(255,255,255,0.52); }
+    .xls-flow { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .xls-step { display: flex; flex-direction: column; align-items: center; gap: 0.45rem; text-align: center; }
+    .xls-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+    .xls-arrow { font-size: 1.3rem; color: var(--red); }
+    .xls-step span { font-size: 0.7rem; color: rgba(255,255,255,0.5); max-width: 80px; line-height: 1.4; }
+    .big-num { font-family: "Playfair Display", serif; font-size: clamp(6rem,18vw,16rem); font-weight: 900; line-height: 0.9; color: var(--red); opacity: 0.07; position: absolute; right: -1.5rem; bottom: -1.5rem; pointer-events: none; user-select: none; z-index: 0; }
+    .hitachi-logo { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.4rem; }
+    .hitachi-logo .brand-mark { background: var(--red); color: var(--white); font-weight: 900; font-size: 0.82rem; letter-spacing: 0.1em; padding: 0.3em 0.7em; border-radius: 6px; }
+    .hitachi-logo .brand-name { font-size: 0.87rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+    .tracks-decor { position: absolute; bottom: 38px; left: 0; right: 0; height: 10px; border-top: 3px solid rgba(255,255,255,0.07); pointer-events: none; z-index: 1; }
+    .feature-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--red); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; color: var(--white); margin-bottom: 0.9rem; }
+    .benefit-table { width: 100%; max-width: 820px; border-collapse: collapse; }
+    .benefit-table th, .benefit-table td { padding: 0.9rem 1.1rem; text-align: left; font-size: 0.88rem; }
+    .benefit-table th { font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem; border-bottom: 2px solid rgba(255,255,255,0.1); }
+    .benefit-table td { border-bottom: 1px solid rgba(255,255,255,0.055); }
+    .benefit-table tr:last-child td { border-bottom: none; }
+    .col-aspect { color: rgba(255,255,255,0.62); font-weight: 600; }
+    .col-value { color: var(--green); font-weight: 600; }
+    .col-why { color: rgba(255,255,255,0.45); font-size: 0.82rem; }
+    #s1 .bg-decor { position: absolute; inset: 0; background: radial-gradient(ellipse 65% 55% at 68% 52%,rgba(230,0,0,0.15) 0%,transparent 65%); pointer-events: none; z-index: 1; }
+    #s1 .subtitle { font-size: clamp(1rem,2vw,1.4rem); font-weight: 300; color: rgba(255,255,255,0.5); margin: 1rem 0 2.2rem; max-width: 48ch; line-height: 1.65; }
+    #s1 .badge-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    #s1 .start-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--red); color: var(--white); font-weight: 700; font-size: 0.82rem; letter-spacing: 0.1em; padding: 0.55em 1.3em; border-radius: 999px; text-transform: uppercase; }
+    #s1 .date-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.45); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.15em; padding: 0.5em 1.1em; border-radius: 999px; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.1); }
+    #s6 .big-reveal { position: absolute; inset: 0; background: radial-gradient(circle at 50% 42%,rgba(230,0,0,0.2) 0%,transparent 58%); pointer-events: none; z-index: 0; }
+    #s13 { background: radial-gradient(ellipse 80% 70% at 50% 50%,rgba(230,0,0,0.17) 0%,var(--ink) 68%); }
+    #s13 .cta-box { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 1.6rem 2.8rem; margin: 1.8rem auto; max-width: 480px; font-family: "Outfit", monospace; font-size: 1.25rem; font-weight: 700; color: var(--gold); letter-spacing: 0.05em; }
+    #s13 .cta-sub { font-size: 0.75rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.2em; margin-top: 0.4rem; }
+  </style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="deck">
+
+  <!-- S1: TITLE -->
+  <section class="slide bg-stripe noise active" id="s1">
+    <div class="bg-decor"></div>
+    <div class="tracks-decor"></div>
+    <div class="slide-content">
+      <div class="hitachi-logo">
+        <span class="brand-mark">HITACHI</span>
+        <span class="brand-name">Rail GTS &middot; Lucky Draw</span>
+      </div>
+      <div class="eyebrow">Demo Presentation &middot; April 2026</div>
+      <h1 class="display">Make every birthday<br /><em>feel like a golden ticket.</em></h1>
+      <p class="subtitle">A fair, reliable and engaging lucky draw tool built for Hitachi Rail birthday parties &mdash; powered by the train that moves our city.</p>
+      <div class="badge-row">
+        <span class="start-badge">&#x1F682; New Tool Demo</span>
+        <span class="date-badge">April 2026</span>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">01 / 13</div>
+  </section>
+
+  <!-- S2: VALUE OVERVIEW -->
+  <section class="slide bg-dark noise" id="s2">
+    <div class="slide-content">
+      <div class="eyebrow">What it brings</div>
+      <h2 class="headline" style="margin-bottom:2.2rem;">Four reasons it makes<br /><em style="color:var(--red);font-style:italic">every event better.</em></h2>
+      <div class="four-col">
+        <div class="value-card vc-red">
+          <span class="vc-icon">&#x1F682;</span>
+          <h3>Train-Powered Draw</h3>
+          <p>Real physics. Real sparks. A Hitachi Rail train reel that makes everyone look up from their phones.</p>
+        </div>
+        <div class="value-card vc-gold">
+          <span class="vc-icon">&#x1F3DF;</span>
+          <h3>Golden Ticket Reveal</h3>
+          <p>Every winner gets a full-screen cinematic moment &mdash; name, photo, prize, and a cheer the whole team remembers.</p>
+        </div>
+        <div class="value-card vc-green">
+          <span class="vc-icon">&#x2705;</span>
+          <h3>Built-in Fairness</h3>
+          <p>Auto removes previous winners. Transparent participant list. Fully verifiable &mdash; no way to influence the result.</p>
+        </div>
+        <div class="value-card vc-white">
+          <span class="vc-icon">&#x1F4C2;</span>
+          <h3>Birthday-Ready Data</h3>
+          <p>Drop in the GTS Birthday List XLS. Month range auto-detected. Draw-ready in seconds, zero copy-paste.</p>
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">02 / 13</div>
+  </section>
+
+  <!-- S3: TRAIN REEL screenshot readme-home.png -->
+  <section class="slide bg-stripe noise" id="s3">
+    <div class="big-num" aria-hidden="true">01</div>
+    <div class="slide-content two-col-40">
+      <div>
+        <div class="feature-num">01</div>
+        <div class="eyebrow">The Draw Experience</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">Hitachi Rail<br />runs the draw.</h2>
+        <p class="body-lg" style="margin-bottom:0;">Watch the train accelerate, spark, and decelerate to a winner &mdash; all on a stage that reflects Hitachi Rail&rsquo;s identity. No spreadsheets in sight.</p>
+        <div class="check-list">
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Smooth deceleration physics with spark effects</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Employee cards scroll through the reel at speed</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>START / STOP mechanic anyone can operate</div>
+          <div class="check-item gold"><span class="ci-icon">&#x1F682;</span>Hitachi Rail train motif on every screen</div>
+        </div>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <div class="sf-bar">
+            <span class="sf-dot" style="background:#ff5f57"></span>
+            <span class="sf-dot" style="background:#febc2e"></span>
+            <span class="sf-dot" style="background:#28c840"></span>
+          </div>
+          <img src="/docs/readme-home.png" alt="Lucky Draw home screen - train reel" />
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">03 / 13</div>
+  </section>
+
+  <!-- S4: GOLDEN TICKET REVEAL screenshot readme-reveal.png -->
+  <section class="slide bg-dark noise" id="s4">
+    <div class="big-num" aria-hidden="true">02</div>
+    <div class="slide-content two-col-60">
+      <div>
+        <div class="screenshot-frame">
+          <div class="sf-bar">
+            <span class="sf-dot" style="background:#ff5f57"></span>
+            <span class="sf-dot" style="background:#febc2e"></span>
+            <span class="sf-dot" style="background:#28c840"></span>
+          </div>
+          <img src="/docs/readme-reveal.png" alt="Golden Ticket winner reveal" />
+        </div>
+      </div>
+      <div>
+        <div class="feature-num">02</div>
+        <div class="eyebrow">Winner Reveal</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">Every winner<br />gets their<br />Golden Ticket.</h2>
+        <p class="body-lg" style="margin-bottom:0;">When the train stops, a full-screen Golden Ticket erupts &mdash; winner&rsquo;s name, staff code, photo, and prize. Confetti flies. The room reacts. That&rsquo;s the moment people come for.</p>
+        <div class="check-list">
+          <div class="check-item gold"><span class="ci-icon">&#x1F3DF;</span>Full-screen cinematic ticket design</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Winner photo, name, role and prize shown</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Birthday song plays in Birthday Party mode</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Redraw available &mdash; safe and transparent</div>
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe-gold"></div>
+    <div class="slide-num">04 / 13</div>
+  </section>
+
+  <!-- S5: SUMMARY PODIUM screenshot readme-summary.png -->
+  <section class="slide bg-stripe noise" id="s5">
+    <div class="big-num" aria-hidden="true">03</div>
+    <div class="slide-content two-col-40">
+      <div>
+        <div class="feature-num">03</div>
+        <div class="eyebrow">Summary Screen</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">End on a high &mdash;<br />the podium<br />moment.</h2>
+        <p class="body-lg" style="margin-bottom:0;">When all prizes are drawn, the app transitions automatically to a full-screen winner podium. Every winner, every tier, beautifully presented &mdash; your built-in event highlight reel.</p>
+        <div class="check-list">
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Auto-transitions after the last prize reveal</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Winners grouped by prize tier</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Jump to summary at any time from the reveal screen</div>
+          <div class="check-item gold"><span class="ci-icon">&#x1F3C6;</span>Reset to run the event again in one click</div>
+        </div>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <div class="sf-bar">
+            <span class="sf-dot" style="background:#ff5f57"></span>
+            <span class="sf-dot" style="background:#febc2e"></span>
+            <span class="sf-dot" style="background:#28c840"></span>
+          </div>
+          <img src="/docs/readme-summary.png" alt="Winner summary podium screen" />
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">05 / 13</div>
+  </section>
+
+  <!-- S6: BIRTHDAY MODE screenshots birthday-home + birthday-filter -->
+  <section class="slide bg-dark noise" id="s6">
+    <div class="big-reveal"></div>
+    <div class="big-num" aria-hidden="true">04</div>
+    <div class="slide-content two-col-60">
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div class="screenshot-pair">
+          <div class="screenshot-frame">
+            <div class="sf-bar">
+              <span class="sf-dot" style="background:#ff5f57"></span>
+              <span class="sf-dot" style="background:#febc2e"></span>
+              <span class="sf-dot" style="background:#28c840"></span>
+            </div>
+            <img src="/docs/readme-birthday-home.png" alt="Birthday Party mode home" style="max-height:200px;object-fit:cover;object-position:top" />
+          </div>
+          <div class="screenshot-frame">
+            <div class="sf-bar">
+              <span class="sf-dot" style="background:#ff5f57"></span>
+              <span class="sf-dot" style="background:#febc2e"></span>
+              <span class="sf-dot" style="background:#28c840"></span>
+            </div>
+            <img src="/docs/readme-birthday-filter.png" alt="Birthday month filter" style="max-height:200px;object-fit:cover;object-position:top" />
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="feature-num">04</div>
+        <div class="eyebrow">Birthday Party Mode</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">Built for the<br />birthday party<br />&mdash; from the start.</h2>
+        <p class="body-lg" style="margin-bottom:0;">Switch to Birthday Party mode and the app transforms. Birthday banners, month-range participant filtering, and the &ldquo;Happy Birthday&rdquo; song on reveal. Purpose-built for your celebration.</p>
+        <div class="check-list">
+          <div class="check-item gold"><span class="ci-icon">&#x1F382;</span>Dedicated Birthday Party mode with themed UI</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Month-range filter auto-scopes eligible staff</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>&ldquo;Happy Birthday&rdquo; plays on every winner reveal</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Runs alongside Annual Dinner &mdash; same tool</div>
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">06 / 13</div>
+  </section>
+
+  <!-- S7: XLS UPLOAD screenshot readme-uploads.png -->
+  <section class="slide bg-stripe noise" id="s7">
+    <div class="big-num" aria-hidden="true">05</div>
+    <div class="slide-content two-col-40">
+      <div>
+        <div class="feature-num">05</div>
+        <div class="eyebrow">XLS Birthday Workbook Upload</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">Drop in the GTS<br />Birthday List &mdash;<br />done.</h2>
+        <p class="body-lg" style="margin-bottom:1rem;">Upload the official <code style="background:rgba(255,255,255,0.08);padding:0.1em 0.4em;border-radius:4px;">GTS Birthday List.xlsx</code>. The app auto-parses the workbook, detects the month window from the filename, and builds the eligible list &mdash; instantly.</p>
+        <div class="xls-flow">
+          <div class="xls-step">
+            <div class="xls-icon" style="background:rgba(93,255,138,0.09);border:1px solid rgba(93,255,138,0.18);">&#x1F4C4;</div>
+            <span>GTS Birthday List.xlsx</span>
+          </div>
+          <div class="xls-arrow">&rarr;</div>
+          <div class="xls-step">
+            <div class="xls-icon" style="background:rgba(230,0,0,0.12);border:1px solid rgba(230,0,0,0.22);">&#x2699;&#xFE0F;</div>
+            <span>Auto-parse &amp; validate</span>
+          </div>
+          <div class="xls-arrow">&rarr;</div>
+          <div class="xls-step">
+            <div class="xls-icon" style="background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.22);">&#x1F3AF;</div>
+            <span>Month range auto-applied</span>
+          </div>
+          <div class="xls-arrow">&rarr;</div>
+          <div class="xls-step">
+            <div class="xls-icon" style="background:rgba(93,255,138,0.09);border:1px solid rgba(93,255,138,0.18);">&#x1F389;</div>
+            <span>Draw-ready list</span>
+          </div>
+        </div>
+        <div class="check-list" style="margin-top:0;">
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Parses any valid GTS Birthday List workbook</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Detects month window from filename or sheet header</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Stored outside public/ for security</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>One-click clear falls back to employees.csv</div>
+        </div>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <div class="sf-bar">
+            <span class="sf-dot" style="background:#ff5f57"></span>
+            <span class="sf-dot" style="background:#febc2e"></span>
+            <span class="sf-dot" style="background:#28c840"></span>
+          </div>
+          <img src="/docs/readme-uploads.png" alt="XLS upload settings panel" />
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">07 / 13</div>
+  </section>
+
+  <!-- S8: PARTICIPANTS PANEL screenshot readme-participants.png -->
+  <section class="slide bg-dark noise" id="s8">
+    <div class="big-num" aria-hidden="true">06</div>
+    <div class="slide-content two-col-60">
+      <div>
+        <div class="screenshot-frame">
+          <div class="sf-bar">
+            <span class="sf-dot" style="background:#ff5f57"></span>
+            <span class="sf-dot" style="background:#febc2e"></span>
+            <span class="sf-dot" style="background:#28c840"></span>
+          </div>
+          <img src="/docs/readme-participants.png" alt="Participants panel - eligible list" />
+        </div>
+      </div>
+      <div>
+        <div class="feature-num">06</div>
+        <div class="eyebrow">Participants Panel</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">Everyone can<br />see who&rsquo;s in<br />the draw.</h2>
+        <p class="body-lg" style="margin-bottom:0;">Open the Participants panel before the draw starts. Every eligible name, every remaining participant &mdash; visible to the whole room. Trust built before the first pull.</p>
+        <div class="check-list">
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Live count of participants still eligible</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Previous winners automatically greyed out</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Searchable list &mdash; find any name in seconds</div>
+          <div class="check-item gold"><span class="ci-icon">&#x1F50D;</span>Full transparency before every draw</div>
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">08 / 13</div>
+  </section>
+
+  <!-- S9: BACKGROUNDS screenshot readme-backgrounds.png -->
+  <section class="slide bg-stripe noise" id="s9">
+    <div class="big-num" aria-hidden="true">07</div>
+    <div class="slide-content two-col-40">
+      <div>
+        <div class="feature-num">07</div>
+        <div class="eyebrow">Custom Backgrounds</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">Your event,<br />your backdrop.</h2>
+        <p class="body-lg" style="margin-bottom:0;">Upload any image as the stage background &mdash; a venue photo, your team banner, or a seasonal theme. Drag-and-drop from the Settings panel. No code, no reboots.</p>
+        <div class="check-list">
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Upload any JPG or PNG as the draw backdrop</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Drag-and-drop from Settings &mdash; instant preview</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Pre-loaded seasonal backgrounds included</div>
+          <div class="check-item gold"><span class="ci-icon">&#x1F3A8;</span>Personalise without touching a single line of code</div>
+        </div>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <div class="sf-bar">
+            <span class="sf-dot" style="background:#ff5f57"></span>
+            <span class="sf-dot" style="background:#febc2e"></span>
+            <span class="sf-dot" style="background:#28c840"></span>
+          </div>
+          <img src="/docs/readme-backgrounds.png" alt="Background picker - custom upload" />
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">09 / 13</div>
+  </section>
+
+  <!-- S10: BGM + SPEED screenshots readme-bgm.png + readme-speed.png -->
+  <section class="slide bg-dark noise" id="s10">
+    <div class="big-num" aria-hidden="true">08</div>
+    <div class="slide-content two-col-60">
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div class="screenshot-pair">
+          <div class="screenshot-frame">
+            <div class="sf-bar">
+              <span class="sf-dot" style="background:#ff5f57"></span>
+              <span class="sf-dot" style="background:#febc2e"></span>
+              <span class="sf-dot" style="background:#28c840"></span>
+            </div>
+            <img src="/docs/readme-bgm.png" alt="Background music controls" style="max-height:200px;object-fit:cover;object-position:top" />
+          </div>
+          <div class="screenshot-frame">
+            <div class="sf-bar">
+              <span class="sf-dot" style="background:#ff5f57"></span>
+              <span class="sf-dot" style="background:#febc2e"></span>
+              <span class="sf-dot" style="background:#28c840"></span>
+            </div>
+            <img src="/docs/readme-speed.png" alt="Animation speed slider" style="max-height:200px;object-fit:cover;object-position:top" />
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="feature-num">08</div>
+        <div class="eyebrow">Music &amp; Animation Speed</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">Set the tempo.<br />Build the<br />suspense.</h2>
+        <p class="body-lg" style="margin-bottom:0;">Choose Upbeat or Chill background music. Use the speed slider to slow the reel for grand prizes &mdash; or burn through consolation rounds fast. Every draw has the right energy.</p>
+        <div class="check-list">
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Upbeat &amp; Chill BGM tracks &mdash; toggle anytime</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Speed slider: 2&times; slow &rarr; 8&times; fast</div>
+          <div class="check-item gold"><span class="ci-icon">&#x1F3B5;</span>&ldquo;Happy Birthday&rdquo; plays automatically on reveal</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Mute button &mdash; no awkward silences during speeches</div>
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">10 / 13</div>
+  </section>
+
+  <!-- S11: MODE SWITCH screenshot readme-mode-switch.png -->
+  <section class="slide bg-stripe noise" id="s11">
+    <div class="big-num" aria-hidden="true">09</div>
+    <div class="slide-content two-col-40">
+      <div>
+        <div class="feature-num">09</div>
+        <div class="eyebrow">Event Modes</div>
+        <h2 class="headline" style="margin-bottom:1.2rem;">One tool.<br />Every event.</h2>
+        <p class="body-lg" style="margin-bottom:0;">Switch between Annual Dinner and Birthday Party mode with a single tap. Each mode loads its own participant list, prize tiers, and theme &mdash; ready to run in seconds.</p>
+        <div class="check-list">
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Annual Dinner mode &mdash; full employee pool</div>
+          <div class="check-item gold"><span class="ci-icon">&#x1F382;</span>Birthday Party mode &mdash; month-scoped list + themed UI</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Drop any .csv to create a new event mode</div>
+          <div class="check-item"><span class="ci-icon">&#x2713;</span>Mode and all settings persist across refresh</div>
+        </div>
+      </div>
+      <div>
+        <div class="screenshot-frame">
+          <div class="sf-bar">
+            <span class="sf-dot" style="background:#ff5f57"></span>
+            <span class="sf-dot" style="background:#febc2e"></span>
+            <span class="sf-dot" style="background:#28c840"></span>
+          </div>
+          <img src="/docs/readme-mode-switch.png" alt="Mode switch - Annual Dinner / Birthday Party" />
+        </div>
+      </div>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">11 / 13</div>
+  </section>
+
+  <!-- S12: VALUE AT A GLANCE -->
+  <section class="slide bg-dark noise" id="s12">
+    <div class="slide-content" style="display:flex;flex-direction:column;align-items:center;">
+      <div class="eyebrow" style="text-align:center;">Value At A Glance</div>
+      <h2 class="headline" style="margin-bottom:1.8rem;text-align:center;">What the app delivers<br /><em style="color:var(--red);font-style:italic">for your team.</em></h2>
+      <table class="benefit-table">
+        <thead>
+          <tr>
+            <th class="col-aspect">What you get</th>
+            <th style="color:var(--green);">How it works</th>
+            <th style="color:rgba(255,255,255,0.4);">Why it matters</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="col-aspect">&#x1F682; Train-powered draw</td><td class="col-value">Hitachi Rail reel with physics &amp; sparks</td><td class="col-why">Turns a simple draw into a crowd moment</td></tr>
+          <tr><td class="col-aspect">&#x1F3DF; Golden Ticket reveal</td><td class="col-value">Full-screen winner card with confetti</td><td class="col-why">Every winner feels celebrated, not just announced</td></tr>
+          <tr><td class="col-aspect">&#x1F4C2; XLS upload</td><td class="col-value">Drop GTS Birthday List &mdash; auto parsed</td><td class="col-why">No manual prep, no copy-paste, always accurate</td></tr>
+          <tr><td class="col-aspect">&#x2705; No-repeat fairness</td><td class="col-value">Winners removed from pool automatically</td><td class="col-why">Fully verifiable &mdash; room trusts the result</td></tr>
+          <tr><td class="col-aspect">&#x1F382; Birthday Party mode</td><td class="col-value">Month-filter + birthday song + themed UI</td><td class="col-why">Dedicated experience for birthday celebrations</td></tr>
+          <tr><td class="col-aspect">&#x1F3A8; Custom backgrounds &amp; BGM</td><td class="col-value">Drag-and-drop upload, no code changes</td><td class="col-why">Adapts to any venue, season or event theme</td></tr>
+          <tr><td class="col-aspect">&#x1F4BE; Persistent sessions</td><td class="col-value">All state survives tab close &amp; refresh</td><td class="col-why">Safe to reopen mid-event without losing progress</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="rail-stripe"></div>
+    <div class="slide-num">12 / 13</div>
+  </section>
+
+  <!-- S13: CTA -->
+  <section class="slide noise" id="s13">
+    <div class="slide-content" style="text-align:center;max-width:820px;margin:0 auto;position:relative;z-index:2;">
+      <div class="eyebrow gold" style="text-align:center;">Get Started</div>
+      <h2 class="display" style="text-align:center;margin-bottom:1rem;">
+        Make every birthday<br /><span class="gold-em">unforgettable.</span>
+      </h2>
+      <p style="font-size:clamp(0.95rem,1.9vw,1.2rem);color:rgba(255,255,255,0.5);max-width:44ch;margin:0 auto 0.5rem;line-height:1.7;">Objective: A fair, reliable and engaging lucky draw that turns every celebration into a cinematic Hitachi Rail experience.</p>
+      <div class="cta-box">
+        npm run dev
+        <div class="cta-sub">then open http://localhost:3000</div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:1.2rem;flex-wrap:wrap;margin-top:1.5rem;">
+        <span class="pill pill-white">&#x1F682; Train-powered</span>
+        <span class="pill pill-gold">&#x1F3DF; Golden Ticket</span>
+        <span class="pill pill-green">&#x2713; XLS upload</span>
+        <span class="pill pill-red">&#x1F382; Birthday mode</span>
+        <span class="pill pill-gold">&#x1F3B5; BGM &amp; confetti</span>
+        <span class="pill pill-green">&#x2713; Zero config</span>
+      </div>
+      <p style="margin-top:2.2rem;font-size:0.68rem;color:rgba(255,255,255,0.18);letter-spacing:0.15em;text-transform:uppercase;">Hitachi Rail GTS &middot; Lucky Draw Tool &middot; April 2026</p>
+    </div>
+    <div class="rail-stripe-gold"></div>
+    <div class="slide-num">13 / 13</div>
+  </section>
+
+</div>
+
+<button class="nav-btn" id="prev" aria-label="Previous slide">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+</button>
+<button class="nav-btn" id="next" aria-label="Next slide">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
+<div id="counter"></div>
+<div id="keyboard-hint">&#x2190; &#x2192; SPACE to navigate</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const total = slides.length;
+  let current = 0, transitioning = false;
+  const progress = document.getElementById("progress");
+  const counter = document.getElementById("counter");
+  slides.forEach((_,i) => {
+    const dot = document.createElement("div");
+    dot.className = "dot" + (i===0 ? " active" : "");
+    dot.addEventListener("click", () => goTo(i));
+    counter.appendChild(dot);
+  });
+  function goTo(index) {
+    if (transitioning || index === current) return;
+    transitioning = true;
+    const out = slides[current], inn = slides[index], dir = index > current ? 1 : -1;
+    out.classList.remove("active"); out.classList.add("exit");
+    inn.style.transform = `translateX(${dir*60}px)`; inn.style.opacity = "0"; inn.style.pointerEvents = "none";
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      inn.style.transition = "opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1)";
+      inn.classList.add("active"); inn.style.transform = ""; inn.style.opacity = ""; inn.style.pointerEvents = "";
+    }));
+    setTimeout(() => { out.classList.remove("exit"); transitioning = false; }, 620);
+    current = index; updateUI();
+  }
+  function updateUI() {
+    counter.querySelectorAll(".dot").forEach((d,i) => d.classList.toggle("active", i===current));
+    progress.style.width = ((current+1)/total*100) + "%";
+  }
+  document.getElementById("prev").addEventListener("click", () => goTo(Math.max(0, current-1)));
+  document.getElementById("next").addEventListener("click", () => goTo(Math.min(total-1, current+1)));
+  document.addEventListener("keydown", e => {
+    if (e.key==="ArrowRight"||e.key===" "||e.key==="ArrowDown") { e.preventDefault(); goTo(Math.min(total-1,current+1)); }
+    else if (e.key==="ArrowLeft"||e.key==="ArrowUp") { e.preventDefault(); goTo(Math.max(0,current-1)); }
+  });
+  let tx = 0;
+  document.addEventListener("touchstart", e => { tx = e.touches[0].clientX; });
+  document.addEventListener("touchend", e => { const dx = e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50) dx<0?goTo(Math.min(total-1,current+1)):goTo(Math.max(0,current-1)); });
+  updateUI();
+</script>
+</body>
+</html>

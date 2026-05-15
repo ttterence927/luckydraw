@@ -1,0 +1,15 @@
+node_modules/
+.next/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+.vercel
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/resources/node.exe
+src-tauri/resources/server/
+src-tauri/gen/

@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  cursor:
+    url("/cursor.png") 16 16,
+    auto !important;
+}
+
+button,
+a,
+select,
+input,
+[role="button"],
+label,
+summary,
+.cursor-pointer {
+  cursor:
+    url("/cursor.png") 16 16,
+    pointer !important;
+}
